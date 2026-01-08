@@ -13,7 +13,59 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Ping {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  image       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  experiments Experiment[]
 }
+
+model Experiment {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  hypothesis  String
+  action      String
+  metricName  String
+
+  startDate   DateTime
+  endDate     DateTime?
+  status      ExperimentStatus @default(ACTIVE)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  checkIns    CheckIn[]
+
+  @@index([userId])
+}
+
+model CheckIn {
+  id           String     @id @default(cuid())
+  experimentId String
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  date         DateTime
+  adhered      Boolean
+  metricValue  Float
+  note         String?
+
+  createdAt    DateTime   @default(now())
+
+  // Enforce: one check-in per experiment per day
+  @@unique([experimentId, date])
+  @@index([experimentId])
+}
+
+enum ExperimentStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
