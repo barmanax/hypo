@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { tryLoadManifestWithRetries } from 'next/dist/server/load-components';
+import { Trykker } from 'next/font/google';
 
 type CreateExperimentBody = {
   title: string;
@@ -12,6 +14,31 @@ type CreateExperimentBody = {
 
 const DEV_USER_ID = 'cmk60euvh0000ti5c6f3b2fzl';
 
+export async function GET() {
+  try {
+    const experiments = await prisma.experiment.findMany({
+      where: {userId: DEV_USER_ID},
+      orderBy: {createdAt: 'desc'},
+      select: {
+        id: true,
+        title: true,
+        hypothesis: true, 
+        action: true,
+        metricName: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json(experiments)
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: 'Internal server error'}, {status: 500})
+  }
+}
 
 export async function POST(req: Request) {
   try {
