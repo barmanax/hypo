@@ -5,13 +5,14 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     // Simple query to prove DB connectivity
-    const count = await prisma.ping.count();
+    const experimentCount = await prisma.experiment.count();
 
     return NextResponse.json({
-      ok: true,
-      db: 'up',
-      pingCount: count,
-    });
+    ok: true,
+    db: 'up',
+    experimentCount,
+  });
+
   } catch (error) {
     console.error('Health check error:', error);
     return NextResponse.json(
