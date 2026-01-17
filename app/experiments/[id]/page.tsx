@@ -1,3 +1,4 @@
+import CheckInForm  from "@/components/CheckInForm";
 export const dynamic = 'force-dynamic';
 
 type CheckIn = {
@@ -63,8 +64,8 @@ export default async function ExperimentPage({
           ) : null}
         </div>
       </div>
-
-      <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 20 }}>Check-ins</h2>
+      <CheckInForm experimentId={exp.id}/>
+      
 
       <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
         {exp.checkIns.length === 0 ? (
