@@ -65,7 +65,7 @@ export default async function ExperimentPage({
         </div>
       </div>
       <CheckInForm experimentId={exp.id}/>
-      
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 20 }}>Check-ins</h2>
 
       <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
         {exp.checkIns.length === 0 ? (
