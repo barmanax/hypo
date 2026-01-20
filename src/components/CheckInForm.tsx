@@ -1,24 +1,25 @@
-'use client';
-
-import { useState } from 'react';
+"use client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type Props = {
   experimentId: string;
 };
 
 export default function CheckInForm({ experimentId }: Props) {
+  const router = useRouter();
   const [date, setDate] = useState(() => {
     // Default to today in YYYY-MM-DD
     const now = new Date();
     const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
   });
 
   const [adhered, setAdhered] = useState(true);
-  const [metricValue, setMetricValue] = useState<string>('8');
-  const [note, setNote] = useState('');
+  const [metricValue, setMetricValue] = useState<string>("8");
+  const [note, setNote] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,15 +32,15 @@ export default function CheckInForm({ experimentId }: Props) {
 
     const metricNum = Number(metricValue);
     if (Number.isNaN(metricNum)) {
-      setError('Metric value must be a number.');
+      setError("Metric value must be a number.");
       return;
     }
 
     setLoading(true);
     try {
       const res = await fetch(`/api/experiments/${experimentId}/checkins`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date,
           adhered,
@@ -55,11 +56,11 @@ export default function CheckInForm({ experimentId }: Props) {
         return;
       }
 
-      setSuccess('Check-in created!');
+      setSuccess("Check-in created!");
       // Refresh to re-fetch server-rendered data (experiment + check-ins)
-      window.location.reload();
+      router.refresh();
     } catch {
-      setError('Network error. Try again.');
+      setError("Network error. Try again.");
     } finally {
       setLoading(false);
     }
@@ -68,12 +69,17 @@ export default function CheckInForm({ experimentId }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      style={{ marginTop: 16, padding: 16, border: '1px solid #ddd', borderRadius: 10 }}
+      style={{
+        marginTop: 16,
+        padding: 16,
+        border: "1px solid #ddd",
+        borderRadius: 10,
+      }}
     >
       <div style={{ fontWeight: 700, marginBottom: 10 }}>New check-in</div>
 
-      <div style={{ display: 'grid', gap: 10 }}>
-        <label style={{ display: 'grid', gap: 6 }}>
+      <div style={{ display: "grid", gap: 10 }}>
+        <label style={{ display: "grid", gap: 6 }}>
           <span>Date</span>
           <input
             type="date"
@@ -83,18 +89,18 @@ export default function CheckInForm({ experimentId }: Props) {
           />
         </label>
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label style={{ display: "grid", gap: 6 }}>
           <span>Adhered?</span>
           <select
-            value={adhered ? 'yes' : 'no'}
-            onChange={(e) => setAdhered(e.target.value === 'yes')}
+            value={adhered ? "yes" : "no"}
+            onChange={(e) => setAdhered(e.target.value === "yes")}
           >
             <option value="yes">Yes</option>
             <option value="no">No</option>
           </select>
         </label>
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label style={{ display: "grid", gap: 6 }}>
           <span>Metric value</span>
           <input
             type="number"
@@ -105,7 +111,7 @@ export default function CheckInForm({ experimentId }: Props) {
           />
         </label>
 
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label style={{ display: "grid", gap: 6 }}>
           <span>Note (optional)</span>
           <input
             type="text"
@@ -115,11 +121,11 @@ export default function CheckInForm({ experimentId }: Props) {
           />
         </label>
 
-        {error ? <div style={{ color: 'crimson' }}>{error}</div> : null}
-        {success ? <div style={{ color: 'green' }}>{success}</div> : null}
+        {error ? <div style={{ color: "crimson" }}>{error}</div> : null}
+        {success ? <div style={{ color: "green" }}>{success}</div> : null}
 
         <button type="submit" disabled={loading}>
-          {loading ? 'Submitting...' : 'Submit check-in'}
+          {loading ? "Submitting..." : "Submit check-in"}
         </button>
       </div>
     </form>
