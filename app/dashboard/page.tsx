@@ -23,6 +23,7 @@ async function getExperiments(): Promise<Experiment[]> {
   return res.json();
 }
 
+
 export default async function DashboardPage() {
   const experiments = await getExperiments();
 
