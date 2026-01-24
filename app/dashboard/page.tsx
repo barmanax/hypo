@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 type Experiment = {
   id: string;
@@ -8,12 +8,12 @@ type Experiment = {
   metricName: string;
   startDate: string;
   endDate: string | null;
-  status: 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+  status: "ACTIVE" | "PAUSED" | "COMPLETED";
 };
 
 async function getExperiments(): Promise<Experiment[]> {
-  const res = await fetch('http://localhost:3000/api/experiments', {
-    cache: 'no-store',
+  const res = await fetch("http://localhost:3000/api/experiments", {
+    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -23,20 +23,33 @@ async function getExperiments(): Promise<Experiment[]> {
   return res.json();
 }
 
-
 export default async function DashboardPage() {
   const experiments = await getExperiments();
 
   return (
-    <main style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
+    <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
       <h1 style={{ fontSize: 28, fontWeight: 700 }}>Dashboard</h1>
-      <p style={{ opacity: 0.8, marginTop: 8 }}>
-        Your experiments (dev mode)
-      </p>
+      <a
+        href="/experiments/new"
+        style={{
+          display: "inline-block",
+          marginTop: 12,
+          padding: "10px 12px",
+          border: "1px solid #ddd",
+          borderRadius: 10,
+          textDecoration: "none",
+          color: "inherit",
+        }}
+      >
+        + New Experiment
+      </a>
+      <p style={{ opacity: 0.8, marginTop: 8 }}>Your experiments (dev mode)</p>
 
-      <div style={{ marginTop: 20, display: 'grid', gap: 12 }}>
+      <div style={{ marginTop: 20, display: "grid", gap: 12 }}>
         {experiments.length === 0 ? (
-          <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 10 }}>
+          <div
+            style={{ padding: 16, border: "1px solid #ddd", borderRadius: 10 }}
+          >
             No experiments yet.
           </div>
         ) : (
@@ -45,24 +58,36 @@ export default async function DashboardPage() {
               key={e.id}
               href={`/experiments/${e.id}`}
               style={{
-                display: 'block',
+                display: "block",
                 padding: 16,
-                border: '1px solid #ddd',
+                border: "1px solid #ddd",
                 borderRadius: 10,
-                textDecoration: 'none',
-                color: 'inherit',
+                textDecoration: "none",
+                color: "inherit",
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
                 <div>
                   <div style={{ fontWeight: 700 }}>{e.title}</div>
                   <div style={{ opacity: 0.8, marginTop: 6 }}>
-                    <div><b>Hypothesis:</b> {e.hypothesis}</div>
-                    <div><b>Action:</b> {e.action}</div>
-                    <div><b>Metric:</b> {e.metricName}</div>
+                    <div>
+                      <b>Hypothesis:</b> {e.hypothesis}
+                    </div>
+                    <div>
+                      <b>Action:</b> {e.action}
+                    </div>
+                    <div>
+                      <b>Metric:</b> {e.metricName}
+                    </div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', opacity: 0.8 }}>
+                <div style={{ textAlign: "right", opacity: 0.8 }}>
                   <div>{e.status}</div>
                   <div style={{ marginTop: 6 }}>
                     {new Date(e.startDate).toLocaleDateString()}
