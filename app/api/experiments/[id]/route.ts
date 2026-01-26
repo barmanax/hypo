@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUserId } from '@/lib/currentUser';
 
-const DEV_USER_ID = 'cmk60euvh0000ti5c6f3b2fzl';
+const DEV_USER_ID = 
+getCurrentUserId();
 
 export async function GET(
   _req: Request,

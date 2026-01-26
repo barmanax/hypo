@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUserId } from '@/lib/currentUser';
 
 // TEMP until auth: same one you used in /api/experiments
-const DEV_USER_ID = 'cmk60euvh0000ti5c6f3b2fzl';
+const DEV_USER_ID = getCurrentUserId();
 
 type CreateCheckInBody = {
   date: string;        // ISO string (or YYYY-MM-DD)

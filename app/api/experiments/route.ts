@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { tryLoadManifestWithRetries } from 'next/dist/server/load-components';
-import { Trykker } from 'next/font/google';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { tryLoadManifestWithRetries } from "next/dist/server/load-components";
+import { Trykker } from "next/font/google";
+import { getCurrentUserId } from "@/lib/currentUser";
 
 type CreateExperimentBody = {
   title: string;
@@ -9,20 +10,20 @@ type CreateExperimentBody = {
   action: string;
   metricName: string;
   startDate: string; // ISO
-  endDate?: string;  // ISO optional
+  endDate?: string; // ISO optional
 };
 
-const DEV_USER_ID = 'cmk60euvh0000ti5c6f3b2fzl';
+const DEV_USER_ID = getCurrentUserId();
 
 export async function GET() {
   try {
     const experiments = await prisma.experiment.findMany({
-      where: {userId: DEV_USER_ID},
-      orderBy: {createdAt: 'desc'},
+      where: { userId: DEV_USER_ID },
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         title: true,
-        hypothesis: true, 
+        hypothesis: true,
         action: true,
         metricName: true,
         startDate: true,
@@ -33,10 +34,13 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(experiments)
+    return NextResponse.json(experiments);
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: 'Internal server error'}, {status: 500})
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -44,26 +48,44 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Partial<CreateExperimentBody>;
 
-    const required = ['title', 'hypothesis', 'action', 'metricName', 'startDate'] as const;
+    const required = [
+      "title",
+      "hypothesis",
+      "action",
+      "metricName",
+      "startDate",
+    ] as const;
     for (const key of required) {
-      if (!body[key] || typeof body[key] !== 'string') {
-        return NextResponse.json({ error: `Missing or invalid field: ${key}` }, { status: 400 });
+      if (!body[key] || typeof body[key] !== "string") {
+        return NextResponse.json(
+          { error: `Missing or invalid field: ${key}` },
+          { status: 400 },
+        );
       }
     }
 
     const start = new Date(body.startDate!);
     if (Number.isNaN(start.getTime())) {
-      return NextResponse.json({ error: 'startDate must be a valid ISO date string' }, { status: 400 });
+      return NextResponse.json(
+        { error: "startDate must be a valid ISO date string" },
+        { status: 400 },
+      );
     }
 
     let end: Date | null = null;
     if (body.endDate) {
       end = new Date(body.endDate);
       if (Number.isNaN(end.getTime())) {
-        return NextResponse.json({ error: 'endDate must be a valid ISO date string' }, { status: 400 });
+        return NextResponse.json(
+          { error: "endDate must be a valid ISO date string" },
+          { status: 400 },
+        );
       }
       if (end < start) {
-        return NextResponse.json({ error: 'endDate must be after startDate' }, { status: 400 });
+        return NextResponse.json(
+          { error: "endDate must be after startDate" },
+          { status: 400 },
+        );
       }
     }
 
@@ -82,6 +104,9 @@ export async function POST(req: Request) {
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
