@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { tryLoadManifestWithRetries } from "next/dist/server/load-components";
-import { Trykker } from "next/font/google";
-import { getCurrentUserId } from "@/lib/currentUser";
+import { auth } from "@/auth";
 
 type CreateExperimentBody = {
   title: string;
@@ -13,12 +11,24 @@ type CreateExperimentBody = {
   endDate?: string; // ISO optional
 };
 
-const DEV_USER_ID = getCurrentUserId();
+async function requireUserId() {
+  const session = await auth();
+  const userId = (session?.user as any)?.id as string | undefined;
+  if (!userId) {
+    return null;
+  }
+  return userId;
+}
 
 export async function GET() {
   try {
+    const userId = await requireUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const experiments = await prisma.experiment.findMany({
-      where: { userId: DEV_USER_ID },
+      where: { userId },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -39,13 +49,18 @@ export async function GET() {
     console.error(err);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
 export async function POST(req: Request) {
   try {
+    const userId = await requireUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = (await req.json()) as Partial<CreateExperimentBody>;
 
     const required = [
@@ -55,11 +70,12 @@ export async function POST(req: Request) {
       "metricName",
       "startDate",
     ] as const;
+
     for (const key of required) {
       if (!body[key] || typeof body[key] !== "string") {
         return NextResponse.json(
           { error: `Missing or invalid field: ${key}` },
-          { status: 400 },
+          { status: 400 }
         );
       }
     }
@@ -68,7 +84,7 @@ export async function POST(req: Request) {
     if (Number.isNaN(start.getTime())) {
       return NextResponse.json(
         { error: "startDate must be a valid ISO date string" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -78,20 +94,20 @@ export async function POST(req: Request) {
       if (Number.isNaN(end.getTime())) {
         return NextResponse.json(
           { error: "endDate must be a valid ISO date string" },
-          { status: 400 },
+          { status: 400 }
         );
       }
       if (end < start) {
         return NextResponse.json(
           { error: "endDate must be after startDate" },
-          { status: 400 },
+          { status: 400 }
         );
       }
     }
 
     const created = await prisma.experiment.create({
       data: {
-        userId: DEV_USER_ID,
+        userId,
         title: body.title!,
         hypothesis: body.hypothesis!,
         action: body.action!,
@@ -106,7 +122,7 @@ export async function POST(req: Request) {
     console.error(err);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

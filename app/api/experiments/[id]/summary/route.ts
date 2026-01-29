@@ -1,24 +1,31 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/currentUser';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
-const DEV_USER_ID = getCurrentUserId();
-
-export async function GET(  
+export async function GET(
   _req: Request,
-  ctx: { params: Promise<{ id: string }> }
+  ctx: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: experimentId } = await ctx.params;
+    const session = await auth();
+    const userId = (session?.user as any)?.id as string | undefined;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Ensure experiment belongs to user
     const exp = await prisma.experiment.findFirst({
-      where: { id: experimentId, userId: DEV_USER_ID },
+      where: { id: experimentId, userId: userId },
       select: { id: true },
     });
 
     if (!exp) {
-      return NextResponse.json({ error: 'Experiment not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Experiment not found" },
+        { status: 404 },
+      );
     }
 
     const total = await prisma.checkIn.count({ where: { experimentId } });
@@ -47,6 +54,9 @@ export async function GET(
     });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
