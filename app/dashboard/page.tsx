@@ -12,7 +12,9 @@ const statusStyles = {
 
 export default async function DashboardPage() {
   const session = await auth();
-  const userId = (session?.user as any)?.id as string | undefined;
+  const userId =
+    ((session?.user as any)?.id as string | undefined) ??
+    process.env.DEV_USER_ID;
   if (!userId) redirect("/");
 
   const experiments = await prisma.experiment.findMany({

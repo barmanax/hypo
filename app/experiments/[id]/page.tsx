@@ -25,7 +25,9 @@ export default async function ExperimentPage({
   const { id } = await params;
 
   const session = await auth();
-  const userId = (session?.user as any)?.id as string | undefined;
+  const userId =
+    ((session?.user as any)?.id as string | undefined) ??
+    process.env.DEV_USER_ID;
   if (!userId) redirect("/");
 
   const exp = await prisma.experiment.findFirst({
