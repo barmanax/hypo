@@ -1,18 +1,20 @@
-import NewExperimentForm from '@/components/NewExperimentForm';
+import NewExperimentForm from "@/components/NewExperimentForm";
 
 export default function NewExperimentPage() {
   return (
-    <main style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <a href="/dashboard" style={{ textDecoration: 'none' }}>
-        ← Back
+    <main className="max-w-3xl mx-auto px-4 py-10">
+      <a
+        href="/dashboard"
+        className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+      >
+        ← Back to dashboard
       </a>
 
-      <h1 style={{ fontSize: 28, fontWeight: 800, marginTop: 12 }}>
-        New Experiment
+      <h1 className="text-3xl font-black text-slate-900 mt-4">
+        New experiment
       </h1>
-
-      <p style={{ opacity: 0.8, marginTop: 8 }}>
-        Define what you’re testing and how you’ll measure it.
+      <p className="text-slate-500 mt-2 text-sm">
+        Define what you&apos;re testing and how you&apos;ll measure it.
       </p>
 
       <NewExperimentForm />

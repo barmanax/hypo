@@ -1,67 +1,20 @@
-import CheckInForm from "@/components/CheckInForm";
 export const dynamic = "force-dynamic";
 
-type CheckIn = {
-  id: string;
-  date: string;
-  adhered: boolean;
-  metricValue: number;
-  note: string | null;
-  createdAt: string;
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { notFound, redirect } from "next/navigation";
+import CheckInForm from "@/components/CheckInForm";
+import StatusButton from "@/components/StatusButton";
+
+const statusStyles = {
+  ACTIVE: "bg-emerald-100 text-emerald-700",
+  PAUSED: "bg-amber-100 text-amber-700",
+  COMPLETED: "bg-blue-100 text-blue-700",
 };
 
-type ExperimentDetail = {
-  id: string;
-  title: string;
-  hypothesis: string;
-  action: string;
-  metricName: string;
-  startDate: string;
-  endDate: string | null;
-  status: "ACTIVE" | "PAUSED" | "COMPLETED";
-  checkIns: CheckIn[];
-};
-
-type Summary = {
-  totalCheckins: number;
-  adheredCount: number;
-  adherenceRate: number;
-  avgMetricWhenAdhered: number | null;
-  avgMetricWhenNotAdhered: number | null;
-};
-
-async function getSummary(id: string): Promise<Summary> {
-  const res = await fetch(
-    `http://localhost:3000/api/experiments/${id}/summary`,
-    {
-      cache: "no-store",
-    },
-  );
-
-  if (!res.ok) {
-    // Don’t crash the whole page if summary fails
-    return {
-      totalCheckIns: 0,
-      adheredCount: 0,
-      adherenceRate: 0,
-      avgMetricWhenAdhered: null,
-      avgMetricWhenNotAdhered: null,
-    };
-  }
-
-  return res.json();
-}
-
-async function getExperiment(id: string): Promise<ExperimentDetail> {
-  const res = await fetch(`http://localhost:3000/api/experiments/${id}`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch experiment: ${res.status}`);
-  }
-
-  return res.json();
+function avg(arr: number[]): number | null {
+  if (arr.length === 0) return null;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
 export default async function ExperimentPage({
@@ -70,130 +23,200 @@ export default async function ExperimentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const exp = await getExperiment(id);
-  const summary = await getSummary(id);
+
+  const session = await auth();
+  const userId = (session?.user as any)?.id as string | undefined;
+  if (!userId) redirect("/");
+
+  const exp = await prisma.experiment.findFirst({
+    where: { id, userId },
+    include: {
+      checkIns: {
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          date: true,
+          adhered: true,
+          metricValue: true,
+          note: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
+  if (!exp) notFound();
+
+  // Compute summary inline
+  const total = exp.checkIns.length;
+  const adheredCount = exp.checkIns.filter((c) => c.adhered).length;
+  const adherenceRate = total === 0 ? 0 : adheredCount / total;
+  const avgMetricWhenAdhered = avg(
+    exp.checkIns.filter((c) => c.adhered).map((c) => c.metricValue),
+  );
+  const avgMetricWhenNotAdhered = avg(
+    exp.checkIns.filter((c) => !c.adhered).map((c) => c.metricValue),
+  );
 
   return (
-    <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      <a href="/dashboard" style={{ textDecoration: "none" }}>
-        ← Back
+    <main className="max-w-3xl mx-auto px-4 py-10">
+      {/* Back */}
+      <a
+        href="/dashboard"
+        className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+      >
+        ← Back to dashboard
       </a>
 
-      <h1 style={{ fontSize: 28, fontWeight: 800, marginTop: 12 }}>
-        {exp.title}
-      </h1>
-
-      <div
-        style={{
-          marginTop: 12,
-          padding: 16,
-          border: "1px solid #ddd",
-          borderRadius: 10,
-        }}
-      >
-        <div>
-          <b>Status:</b> {exp.status}
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <b>Hypothesis:</b> {exp.hypothesis}
-        </div>
-        <div style={{ marginTop: 6 }}>
-          <b>Action:</b> {exp.action}
-        </div>
-        <div style={{ marginTop: 6 }}>
-          <b>Metric:</b> {exp.metricName}
-        </div>
-        <div style={{ marginTop: 6 }}>
-          <b>Start:</b> {new Date(exp.startDate).toLocaleDateString()}
-          {exp.endDate ? (
-            <>
-              {" "}
-              • <b>End:</b> {new Date(exp.endDate).toLocaleDateString()}
-            </>
-          ) : null}
-        </div>
+      {/* Title + status */}
+      <div className="flex items-start gap-3 mt-4 mb-6">
+        <h1 className="text-3xl font-black text-slate-900 leading-tight flex-1">
+          {exp.title}
+        </h1>
+        <span
+          className={`mt-1.5 shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[exp.status]}`}
+        >
+          {exp.status}
+        </span>
       </div>
-      <div
-        style={{
-          marginTop: 12,
-          padding: 16,
-          border: "1px solid #ddd",
-          borderRadius: 10,
-        }}
-      >
-        <div style={{ fontWeight: 800, marginBottom: 8 }}>Summary</div>
 
-        <div>
-          <b>Total check-ins:</b> {summary.totalCheckIns}
-        </div>
-        <div>
-          <b>Adhered:</b> {summary.adheredCount}
-        </div>
-        <div>
-          <b>Adherence rate:</b> {(summary.adherenceRate * 100).toFixed(0)}%
-        </div>
-
-        <div style={{ marginTop: 8 }}>
-          <b>Avg metric (adhered):</b>{" "}
-          {summary.avgMetricWhenAdhered === null
-            ? "—"
-            : summary.avgMetricWhenAdhered.toFixed(2)}
-        </div>
-        <div>
-          <b>Avg metric (not adhered):</b>{" "}
-          {summary.avgMetricWhenNotAdhered === null
-            ? "—"
-            : summary.avgMetricWhenNotAdhered.toFixed(2)}
+      {/* Experiment details */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 mb-4">
+        <div className="grid sm:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p className="text-slate-400 font-semibold uppercase text-xs tracking-wide mb-1">
+              Hypothesis
+            </p>
+            <p className="text-slate-700">{exp.hypothesis}</p>
+          </div>
+          <div>
+            <p className="text-slate-400 font-semibold uppercase text-xs tracking-wide mb-1">
+              Action
+            </p>
+            <p className="text-slate-700">{exp.action}</p>
+          </div>
+          <div>
+            <p className="text-slate-400 font-semibold uppercase text-xs tracking-wide mb-1">
+              Metric
+            </p>
+            <p className="text-slate-700">{exp.metricName}</p>
+          </div>
+          <div>
+            <p className="text-slate-400 font-semibold uppercase text-xs tracking-wide mb-1">
+              Timeline
+            </p>
+            <p className="text-slate-700">
+              {new Date(exp.startDate).toLocaleDateString()}
+              {exp.endDate
+                ? ` → ${new Date(exp.endDate).toLocaleDateString()}`
+                : " → ongoing"}
+            </p>
+          </div>
         </div>
       </div>
 
-      <CheckInForm experimentId={exp.id} />
-      <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 20 }}>
-        Check-ins
-      </h2>
-
-      <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-        {exp.checkIns.length === 0 ? (
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        {[
+          { label: "Check-ins", value: total.toString() },
+          {
+            label: "Adherence",
+            value: `${(adherenceRate * 100).toFixed(0)}%`,
+          },
+          {
+            label: `Avg (adhered)`,
+            value:
+              avgMetricWhenAdhered === null
+                ? "—"
+                : avgMetricWhenAdhered.toFixed(1),
+          },
+          {
+            label: `Avg (not adhered)`,
+            value:
+              avgMetricWhenNotAdhered === null
+                ? "—"
+                : avgMetricWhenNotAdhered.toFixed(1),
+          },
+        ].map((stat) => (
           <div
-            style={{ padding: 16, border: "1px solid #ddd", borderRadius: 10 }}
+            key={stat.label}
+            className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 text-center"
           >
-            No check-ins yet.
+            <p className="text-2xl font-black text-slate-900">{stat.value}</p>
+            <p className="text-xs text-slate-400 mt-1 font-medium">
+              {stat.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Actions */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 mb-4">
+        <p className="text-sm font-medium text-slate-500 mb-3">Actions</p>
+        <StatusButton
+          experimentId={exp.id}
+          currentStatus={exp.status}
+        />
+      </div>
+
+      {/* Check-in form (only if active) */}
+      {exp.status === "ACTIVE" && (
+        <CheckInForm experimentId={exp.id} metricName={exp.metricName} />
+      )}
+
+      {/* Check-ins list */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-slate-900 mb-4">
+          Check-in history
+        </h2>
+
+        {exp.checkIns.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-slate-400 text-sm">No check-ins yet.</p>
           </div>
         ) : (
-          exp.checkIns.map((c) => (
-            <div
-              key={c.id}
-              style={{
-                padding: 14,
-                border: "1px solid #ddd",
-                borderRadius: 10,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div style={{ fontWeight: 700 }}>
-                  {new Date(c.date).toLocaleDateString()}
+          <div className="flex flex-col gap-2">
+            {exp.checkIns.map((c) => (
+              <div
+                key={c.id}
+                className="bg-white border border-slate-200 rounded-xl shadow-sm px-5 py-4"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-semibold text-slate-800 text-sm">
+                    {new Date(c.date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-slate-500">
+                      {exp.metricName}:{" "}
+                      <span className="font-semibold text-slate-700">
+                        {c.metricValue}
+                      </span>
+                    </span>
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        c.adhered
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {c.adhered ? "Adhered" : "Skipped"}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ opacity: 0.85 }}>
-                  {c.adhered ? "Adhered ✅" : "Not adhered ❌"}
-                </div>
+                {c.note && (
+                  <p className="mt-2 text-sm text-slate-500 italic">
+                    &ldquo;{c.note}&rdquo;
+                  </p>
+                )}
               </div>
-              <div style={{ marginTop: 6 }}>
-                <b>Metric:</b> {c.metricValue}
-              </div>
-              {c.note ? (
-                <div style={{ marginTop: 6, opacity: 0.9 }}>
-                  <b>Note:</b> {c.note}
-                </div>
-              ) : null}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </main>
   );
 }
-
-
-
-// Compare this snippet from app/api/experiments/route.ts:
-

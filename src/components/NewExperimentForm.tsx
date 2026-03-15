@@ -1,25 +1,30 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 function todayYYYYMMDD() {
   const now = new Date();
   const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
+
+const inputClass =
+  "w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm";
+
+const labelClass = "block text-sm font-medium text-slate-700 mb-1";
 
 export default function NewExperimentForm() {
   const router = useRouter();
 
-  const [title, setTitle] = useState('');
-  const [hypothesis, setHypothesis] = useState('');
-  const [action, setAction] = useState('');
-  const [metricName, setMetricName] = useState('');
+  const [title, setTitle] = useState("");
+  const [hypothesis, setHypothesis] = useState("");
+  const [action, setAction] = useState("");
+  const [metricName, setMetricName] = useState("");
   const [startDate, setStartDate] = useState(todayYYYYMMDD());
-  const [endDate, setEndDate] = useState(''); // optional
+  const [endDate, setEndDate] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,23 +33,26 @@ export default function NewExperimentForm() {
     e.preventDefault();
     setError(null);
 
-    // Minimal validation
-    if (!title.trim() || !hypothesis.trim() || !action.trim() || !metricName.trim()) {
-      setError('Please fill out title, hypothesis, action, and metric.');
+    if (
+      !title.trim() ||
+      !hypothesis.trim() ||
+      !action.trim() ||
+      !metricName.trim()
+    ) {
+      setError("Please fill out title, hypothesis, action, and metric.");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch('/api/experiments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/experiments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
           hypothesis: hypothesis.trim(),
           action: action.trim(),
           metricName: metricName.trim(),
-          // Your backend expects ISO strings; we can safely pass YYYY-MM-DD too
           startDate,
           endDate: endDate.trim() ? endDate.trim() : undefined,
         }),
@@ -57,11 +65,10 @@ export default function NewExperimentForm() {
         return;
       }
 
-      // Go to the new experiment page
       router.push(`/experiments/${data.id}`);
       router.refresh();
     } catch {
-      setError('Network error. Try again.');
+      setError("Network error. Try again.");
     } finally {
       setLoading(false);
     }
@@ -70,47 +77,90 @@ export default function NewExperimentForm() {
   return (
     <form
       onSubmit={onSubmit}
-      style={{ marginTop: 16, padding: 16, border: '1px solid #ddd', borderRadius: 10 }}
+      className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mt-6 space-y-5"
     >
-      <div style={{ display: 'grid', gap: 12 }}>
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Title</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </label>
-
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Hypothesis</span>
-          <input value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} required />
-        </label>
-
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Action</span>
-          <input value={action} onChange={(e) => setAction(e.target.value)} required />
-        </label>
-
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Metric name</span>
-          <input value={metricName} onChange={(e) => setMetricName(e.target.value)} required />
-        </label>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>Start date</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
-          </label>
-
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span>End date (optional)</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          </label>
-        </div>
-
-        {error ? <div style={{ color: 'crimson' }}>{error}</div> : null}
-
-        <button type="submit" disabled={loading}>
-          {loading ? 'Creating...' : 'Create experiment'}
-        </button>
+      <div>
+        <label className={labelClass}>Title</label>
+        <input
+          className={inputClass}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Morning workout experiment"
+          required
+        />
       </div>
+
+      <div>
+        <label className={labelClass}>Hypothesis</label>
+        <input
+          className={inputClass}
+          value={hypothesis}
+          onChange={(e) => setHypothesis(e.target.value)}
+          placeholder="e.g. Exercising before 8am will improve my focus"
+          required
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Action</label>
+        <input
+          className={inputClass}
+          value={action}
+          onChange={(e) => setAction(e.target.value)}
+          placeholder="e.g. 30 min workout every morning before 8am"
+          required
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Metric to track</label>
+        <input
+          className={inputClass}
+          value={metricName}
+          onChange={(e) => setMetricName(e.target.value)}
+          placeholder="e.g. Focus score (1-10)"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelClass}>Start date</label>
+          <input
+            type="date"
+            className={inputClass}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className={labelClass}>
+            End date{" "}
+            <span className="text-slate-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="date"
+            className={inputClass}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-60 text-sm"
+      >
+        {loading ? "Creating..." : "Create experiment"}
+      </button>
     </form>
   );
 }
